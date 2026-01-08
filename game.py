@@ -68,6 +68,7 @@ def initialize_game():
     solved = False
     total_moves = 0
     a = 0
+    # print(rects)
     
 
 initialize_game()
@@ -88,17 +89,33 @@ def draw_main_menu():
     text_rect = play_text.get_rect(center=play_button_rect.center)
     screen.blit(play_text, text_rect)
 
+
+show_shuffled = False
+def show_orig_gradient_for_seconds(n):
+    global show_shuffled
+    while n > 0:
+        n -= 0.01
+        print(round(n))
+    show_shuffled = True
+        
+        
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if play_button_rect.collidepoint(event.pos):
+            if play_button_rect.collidepoint(event.pos) and current_state == STATE_MENU:
                 current_state = STATE_GAME
+                show_shuffled = False 
+                start_time = pygame.time.get_ticks()
             if next_button_rect.collidepoint(event.pos) and solved:
                 current_level += 1
                 initialize_game()
-            elif not solved:
+                show_shuffled = False 
+                start_time = pygame.time.get_ticks()
+
+            elif not solved and show_shuffled:
                 for i, rect_data in enumerate(rects):
                     # rect_data[0] is the pygame.Rect, rect_data[1] is the (row, col) index
                     if rect_data[0].collidepoint(event.pos):
@@ -149,19 +166,40 @@ while running:
     if current_state == STATE_MENU:
         draw_main_menu()
     elif current_state == STATE_GAME:
+        current_time = pygame.time.get_ticks()
+        if not show_shuffled and current_time - start_time > 3000:
+            show_shuffled = True
         # RENDER YOUR GAME HERE
         moves_surface = moves_font.render(f'Moves: {total_moves}', True, (0,0,0))
         screen.blit(moves_surface, (15,15))
         k = 0
         for i in range(h):
             for j in range(w):
-                pygame.draw.rect(screen, shuffled_img[j,i]*255,rects[k][0])
-                if selected_idx == k:
-                    pygame.draw.rect(screen, (255,255,0), rects[k][0], 4)
-                    
+
+                if show_shuffled:
+                    pygame.draw.rect(screen, shuffled_img[j,i]*255,rects[k][0])
+                    if selected_idx == k:
+                        pygame.draw.rect(screen, (255,255,0), rects[k][0], 4)
+                else:
+                    pygame.draw.rect(screen, img[j,i]*255,rects[k][0])
                 if rects[k][2]:
                     pygame.draw.circle(screen, (0,0,0), (rects[k][0].x + (tile_size/2), rects[k][0].y + (tile_size/2)), tile_size/12)
                 k+=1
+        if current_time - start_time > 0:
+            text_surface = None
+            if current_time - start_time < 1000:
+                text_surface = win_font.render('3', True, (0, 0, 0))
+            elif current_time - start_time < 2000:
+                text_surface = win_font.render('2', True, (0, 0, 0))
+            elif current_time - start_time < 3000:
+                text_surface = win_font.render('1', True, (0, 0, 0))
+
+            if text_surface:
+                text_rect = text_surface.get_rect()
+                screen_center = screen.get_rect().center
+                text_rect.center = screen_center
+                screen.blit(text_surface, text_rect)
+            
         if solved:
             text_surface = win_font.render('You Win!', True, (0, 0, 0))
             text_surface.set_alpha(int(a))
